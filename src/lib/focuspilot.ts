@@ -5,9 +5,9 @@ import "server-only";
  * FocusPilot (https://focuspilot.online).
  *
  * Configuration (environment variables):
- *   FOCUSPILOT_API_KEY   – required; API key from FocusPilot
- *   FOCUSPILOT_API_URL   – optional; API base URL
- *   FOCUSPILOT_PROJECT_ID – optional; project/list the task belongs to
+ *   FOCUSPILOT_API_KEY   – required; REST API key (starts with `fpk_`)
+ *   FOCUSPILOT_API_URL   – optional; defaults to https://focuspilot.online/api/v1
+ *   FOCUSPILOT_AREA_ID   – optional; area (cuid) the task is filed under
  *
  * All FocusPilot-specific request details live in this file, so aligning with
  * the API reference only ever touches `endpoint`, `headers` and `toPayload`.
@@ -46,14 +46,17 @@ function headers(apiKey: string) {
   };
 }
 
+/** Maps a booking to FocusPilot's `POST /tasks` body (returns a TaskDTO, 201). */
 function toPayload(task: MeetingTask) {
   return {
-    title: task.title,
-    description: task.description,
-    due_date: task.start.toISOString(),
+    title: task.title.slice(0, 500),
+    notes: task.description.slice(0, 20_000),
+    status: "todo",
     priority: "high",
-    tags: task.tags,
-    ...(process.env.FOCUSPILOT_PROJECT_ID ? { project_id: process.env.FOCUSPILOT_PROJECT_ID } : {}),
+    dueAt: task.start.toISOString(),
+    scheduledAt: task.start.toISOString(),
+    plannedMinutes: Math.min(Math.max(task.durationMinutes, 1), 1440),
+    ...(process.env.FOCUSPILOT_AREA_ID ? { areaId: process.env.FOCUSPILOT_AREA_ID } : {}),
   };
 }
 
