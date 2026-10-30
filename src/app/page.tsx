@@ -7,6 +7,7 @@ import { Hero } from "@/components/sections/hero";
 import { Insights } from "@/components/sections/insights";
 import { Pillars } from "@/components/sections/pillars";
 import { Principles } from "@/components/sections/principles";
+import { ProductsShowcase } from "@/components/sections/products-showcase";
 import { Process } from "@/components/sections/process";
 import { RoiCalculator } from "@/components/sections/roi-calculator";
 import { SolutionsScroller } from "@/components/sections/solutions-scroller";
@@ -52,6 +53,7 @@ export default function Home() {
       <CapabilitiesMarquee />
       <Statement />
       <Pillars />
+      <ProductsShowcase />
 
       <section
         className="relative z-10 -mt-10 rounded-t-[2.5rem] bg-ink-950 section-y md:-mt-16 md:rounded-t-[4rem]"

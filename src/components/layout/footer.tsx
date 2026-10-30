@@ -5,6 +5,7 @@ import { BackToTop } from "@/components/layout/back-to-top";
 import { Logo } from "@/components/ui/logo";
 import { socialIcons, socialLabels } from "@/components/ui/social-icons";
 import { legalNav } from "@/content/navigation";
+import { products } from "@/content/products";
 import { services } from "@/content/services";
 import { site } from "@/content/site";
 import { solutions } from "@/content/solutions";
@@ -39,14 +40,14 @@ export function Footer() {
           </span>
         </Link>
 
-        <div className="grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_0.8fr]">
-          <div className="flex flex-col gap-8">
+        <div className="grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[1.4fr_1fr_1fr_0.8fr_0.8fr]">
+          <div className="flex flex-col gap-8 md:col-span-2 lg:col-span-4 xl:col-span-1">
             <Link href="/" aria-label="Delta Creation Co. home" className="w-fit">
               <Logo />
             </Link>
             <p className="max-w-sm text-sm leading-relaxed text-fog-400">
               A development &amp; automation studio building high-converting websites, custom software and AI-powered
-              automations for growing businesses.
+              automations for growing businesses, and software products of our own.
             </p>
             <a
               href={`mailto:${site.email}`}
@@ -64,6 +65,10 @@ export function Footer() {
           <FooterColumn
             title="Solutions"
             links={solutions.map((s) => ({ label: s.name, href: `/solutions/${s.slug}` }))}
+          />
+          <FooterColumn
+            title="Products"
+            links={products.map((p) => ({ label: p.name, href: `/products/${p.slug}` }))}
           />
           <FooterColumn title="Company" links={company} />
         </div>
