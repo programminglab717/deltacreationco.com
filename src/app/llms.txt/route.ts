@@ -1,3 +1,4 @@
+import { productDeliveryLabel, products } from "@/content/products";
 import { services } from "@/content/services";
 import { pageUrl, site } from "@/content/site";
 import { solutions } from "@/content/solutions";
@@ -19,6 +20,11 @@ export function GET() {
     "",
     "## Automation solutions",
     ...solutions.map((s) => `- [${s.name}](${pageUrl(`/solutions/${s.slug}`)}): ${s.short}`),
+    "",
+    "## Products",
+    ...products.map(
+      (p) => `- [${p.name}](${pageUrl(`/products/${p.slug}`)}): ${p.summary} (${productDeliveryLabel(p)})`,
+    ),
     "",
     "## Insights",
     ...getAllPosts().map((p) => `- [${p.title}](${pageUrl(`/blog/${p.slug}`)}): ${p.description}`),

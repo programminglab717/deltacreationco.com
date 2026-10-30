@@ -43,6 +43,8 @@ friendly error with your email address, so no lead is ever silently lost.
 | `/services/[slug]`   | 5 service landing pages (websites, web apps, workflow automation, AI agents, integrations) |
 | `/solutions`         | Automation playbooks                                                    |
 | `/solutions/[slug]`  | 6 playbook pages, each with a live, runnable workflow demo              |
+| `/products`          | The studio's own products: downloadable apps and web apps on subdomains |
+| `/products/[slug]`   | One page per product: preview, features and download / open / early-access links |
 | `/about`             | Story, mission, beliefs, process                                        |
 | `/contact`           | Qualifying contact form → email                                          |
 | `/book`              | FocusPilot booking calendar                                              |
@@ -58,6 +60,7 @@ Almost everything is plain data. No code changes needed for copy updates.
 | Business name, email, time zone, hours, socials | `src/content/site.ts`    |
 | Services (copy, deliverables, FAQs, SEO) | `src/content/services.ts`       |
 | Automation playbooks + demo workflows    | `src/content/solutions.ts`      |
+| Products (copy, status, downloads, subdomains) | `src/content/products.ts` |
 | Process, principles, home FAQ, commitments | `src/content/company.ts`      |
 | Booking embed URL + meeting copy (availability lives in FocusPilot) | `src/content/booking.ts` |
 | Contact form options (budgets, timelines) | `src/content/forms.ts`         |
@@ -66,6 +69,21 @@ Almost everything is plain data. No code changes needed for copy updates.
 
 In headings, wrap words in `*asterisks*` to render them in the italic accent font, e.g.
 `"Put your busywork on *autopilot*."`
+
+## Products
+
+Every product is one entry in `src/content/products.ts`. The home page showcase, `/products`, each product page, the
+footer, the sitemap and `/llms.txt` all read from that list, so adding, removing or reordering a product is a one-file
+change. The first product in the list is the one featured on the home page.
+
+- **`status`**: `available`, `beta` or `in-development`. In-development products show a "Get early access" button that
+  emails you.
+- **`delivery`**: either `{ kind: "web", subdomain: "pvchat" }` (served at `https://pvchat.deltacreationco.com`) or
+  `{ kind: "download", platforms: [{ name: "macOS", href: "https://…" }] }` for installable apps. The first platform
+  with an `href` becomes the main "Download for …" button.
+- **`preview`**: picks the illustrated interface shown for the product. To use a real screenshot instead, put the image
+  in `public/products/` and set `screenshot: { src: "/products/cutaway.png", width: 2400, height: 1500 }`.
+- **`workingName: true`** labels a placeholder name as "working name" until the branding is final.
 
 ## Contact form → your inbox (PHP + PHPMailer)
 
