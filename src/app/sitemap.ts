@@ -1,16 +1,18 @@
 import type { MetadataRoute } from "next";
+import { products } from "@/content/products";
 import { services } from "@/content/services";
 import { absoluteUrl } from "@/content/site";
 import { solutions } from "@/content/solutions";
 import { getAllPosts } from "@/lib/blog";
 
-const LAST_UPDATED = new Date("2026-09-26");
+const LAST_UPDATED = new Date("2026-10-30");
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages: MetadataRoute.Sitemap = [
     { url: absoluteUrl("/"), priority: 1, changeFrequency: "weekly" },
     { url: absoluteUrl("/services"), priority: 0.9, changeFrequency: "monthly" },
     { url: absoluteUrl("/solutions"), priority: 0.8, changeFrequency: "monthly" },
+    { url: absoluteUrl("/products"), priority: 0.8, changeFrequency: "monthly" },
     { url: absoluteUrl("/book"), priority: 0.9, changeFrequency: "monthly" },
     { url: absoluteUrl("/contact"), priority: 0.8, changeFrequency: "yearly" },
     { url: absoluteUrl("/about"), priority: 0.6, changeFrequency: "yearly" },
@@ -29,6 +31,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     ...solutions.map((s) => ({
       url: absoluteUrl(`/solutions/${s.slug}`),
+      lastModified: LAST_UPDATED,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    ...products.map((p) => ({
+      url: absoluteUrl(`/products/${p.slug}`),
       lastModified: LAST_UPDATED,
       changeFrequency: "monthly" as const,
       priority: 0.7,
