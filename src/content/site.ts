@@ -13,8 +13,8 @@ export const site = {
   /** Public contact address shown on the site. */
   email: "hello@deltacreationco.com",
   /**
-   * Studio time zone (IANA). Drives the live studio clock, the "online now"
-   * status and the booking calendar's working hours.
+   * Studio time zone (IANA). Drives the live studio clock and the "online
+   * now" status.
    */
   timeZone: "America/New_York",
   /** Working hours in the studio time zone (24h clock, 0 = Sunday). */

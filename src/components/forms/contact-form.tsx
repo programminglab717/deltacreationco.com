@@ -6,12 +6,14 @@ import { ArrowUpRight, Check, Send } from "lucide-react";
 import { budgetOptions, interestAliases, interestOptions, timelineOptions } from "@/content/forms";
 import { site } from "@/content/site";
 import { track } from "@/lib/analytics";
-import { attributionFields, looksLikeSpam, submitForm } from "@/lib/forms";
+import { getAttribution } from "@/lib/attribution";
 import { cn } from "@/lib/utils";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const LEAD_KEY = "dcc:lead";
 const MAX_MESSAGE = 5000;
+/** PHP mailer shipped in `public/api/` (runs on the web host, not under `next dev`). */
+const CONTACT_ENDPOINT = process.env.NEXT_PUBLIC_CONTACT_ENDPOINT || "/api/contact.php";
 
 type Prefill = {
   interests: string[];
@@ -102,33 +104,31 @@ function ContactFormInner({ prefill }: { prefill: Prefill }) {
     setStatus("sending");
     setServerError(null);
     try {
-      const spam = looksLikeSpam({
-        honeypot: honeypot.current?.value,
-        startedAt: startedAt.current || undefined,
-        text: message,
+      const res = await fetch(CONTACT_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          company: company.trim(),
+          siteUrl: siteUrl.trim(),
+          interests,
+          budget: budget || undefined,
+          timeline: timeline || undefined,
+          message: message.trim(),
+          roi: prefill.roi,
+          website: honeypot.current?.value ?? "",
+          startedAt: startedAt.current || undefined,
+          page: window.location.pathname,
+          attribution: getAttribution(),
+        }),
       });
-      const roi = prefill.roi;
-      const data = spam
-        ? ({ ok: true } as const)
-        : await submitForm({
-            subject: `New enquiry from ${name.trim()}${company.trim() ? ` (${company.trim()})` : ""}`,
-            name: name.trim(),
-            email: email.trim(),
-            fields: {
-              Company: company.trim(),
-              Website: siteUrl.trim(),
-              "Interested in": interests.join(", "),
-              Budget: budget,
-              Timeline: timeline,
-              Message: message.trim(),
-              "ROI estimate": roi
-                ? `${roi.hours.toLocaleString("en-US")} hours / $${roi.savings.toLocaleString("en-US")} a year`
-                : undefined,
-              Page: window.location.pathname,
-              ...attributionFields(),
-            },
-          });
-      if (data.ok) {
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        fields?: Record<string, string>;
+      };
+      if (res.ok && data.ok) {
         setStatus("sent");
         track("generate_lead", { form: "contact", interests: interests.join(","), budget: budget || "unspecified" });
         try {
@@ -145,7 +145,11 @@ function ContactFormInner({ prefill }: { prefill: Prefill }) {
         });
         return;
       }
-      setServerError(data.error);
+      if (data.fields) {
+        setErrors(data.fields);
+        focusFirst(data.fields);
+      }
+      setServerError(data.error ?? `Something went wrong. Please email us at ${site.email}.`);
       setStatus("error");
     } catch {
       setServerError(`We couldn't reach the server. Please try again or email us at ${site.email}.`);

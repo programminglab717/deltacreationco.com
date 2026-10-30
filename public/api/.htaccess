@@ -1,0 +1,10 @@
+# Only contact.php is reachable from the web: block the config files and libraries.
+<FilesMatch "^(config|config\.example|contact-config)\.php$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

@@ -1,17 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { BookingShell } from "@/components/booking/booking-skeleton";
-
-const BookingWidget = dynamic(() => import("@/components/booking/booking-widget"), {
-  ssr: false,
-  loading: () => <BookingShell />,
-});
+import { FocusPilotEmbed } from "@/components/booking/focuspilot-embed";
 
 /**
  * Loads the booking calendar only when it's about to scroll into view
- * (or immediately with `eager`), keeping it out of the initial bundle.
+ * (or immediately with `eager`), keeping it out of the initial page load.
  */
 export function BookingLazy({ eager = false, className }: { eager?: boolean; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -35,7 +30,7 @@ export function BookingLazy({ eager = false, className }: { eager?: boolean; cla
 
   return (
     <div ref={ref} id="book" className={className}>
-      {show ? <BookingWidget /> : <BookingShell />}
+      {show ? <FocusPilotEmbed /> : <BookingShell />}
     </div>
   );
 }

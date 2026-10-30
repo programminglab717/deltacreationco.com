@@ -47,9 +47,9 @@ export default function PrivacyPage() {
 
       <h2>Service providers</h2>
       <p>
-        We use trusted providers to operate our business, including website hosting, a form-processing service that
-        delivers enquiries and bookings to our inbox, email, scheduling and task management tools and, where enabled,
-        analytics. They process your information only on our behalf and under appropriate safeguards.
+        We use trusted providers to operate our business, including website hosting, email delivery, scheduling and task
+        management tools (such as FocusPilot, which handles call bookings) and, where enabled, analytics. They process
+        your information only on our behalf and under appropriate safeguards.
       </p>
 
       <h2>How long we keep it</h2>

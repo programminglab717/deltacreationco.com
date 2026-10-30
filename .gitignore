@@ -18,6 +18,10 @@
 /out/
 /dist/
 
+# contact form mailer secrets
+public/api/config.php
+contact-config.php
+
 # production
 /build
 
