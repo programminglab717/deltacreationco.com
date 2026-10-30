@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock, Download, Globe, Video } from "lucide-react";
-import { BookingSkeleton } from "@/components/booking/booking-skeleton";
+import { booking } from "@/content/booking";
 import { topicOptions } from "@/content/forms";
 import { site } from "@/content/site";
 import { track } from "@/lib/analytics";
 import { useNow } from "@/lib/hooks";
-import { getAttribution } from "@/lib/attribution";
+import { computeSlots, findSlot } from "@/lib/booking/availability";
 import { buildIcs, googleCalendarUrl, outlookCalendarUrl } from "@/lib/booking/calendar";
+import { attributionFields, looksLikeSpam, submitForm } from "@/lib/forms";
 import { dateKey, formatInZone, zonedParts } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +19,7 @@ type Availability = {
   slots: string[];
 };
 
-type Result = { start: string; end: string; location: string; meetingUrl?: string; emailSent: boolean };
+type Result = { start: string; end: string; location: string; meetingUrl?: string };
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const MONTHS = [
@@ -36,6 +37,17 @@ const MONTHS = [
   "December",
 ];
 const LEAD_KEY = "dcc:lead";
+/** Your permanent video-call link, shown after booking and added to calendar invites. */
+const MEETING_URL = process.env.NEXT_PUBLIC_BOOKING_MEETING_URL || undefined;
+const WHEN: Intl.DateTimeFormatOptions = {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZoneName: "short",
+};
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function pad(n: number) {
@@ -62,18 +74,49 @@ function allTimeZones(current: string) {
   return zones;
 }
 
+/** Open slots, generated in the browser from the rules in `src/content/booking.ts`. */
+function availability(zone: string) {
+  const slots = computeSlots().map((s) => s.start);
+  const first = slots[0];
+  const ref = zonedParts(first ?? Date.now(), zone);
+  return {
+    avail: { timeZone: booking.timeZone, meeting: booking.meeting, slots } as Availability,
+    month: { y: ref.year, m: ref.month },
+    selectedDate: first ? dateKey(first, zone) : null,
+  };
+}
+
+/** Prefill from an earlier enquiry or from the URL. */
+function readLead(): Record<string, string | undefined> {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const saved = JSON.parse(sessionStorage.getItem(LEAD_KEY) ?? "{}") as Record<string, string>;
+    return {
+      name: params.get("name") ?? saved.name,
+      email: params.get("email") ?? saved.email,
+      company: saved.company,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/** Client-only (loaded with `ssr: false`), so initial state can read browser APIs. */
 export default function BookingWidget({ className }: { className?: string }) {
-  const [avail, setAvail] = useState<Availability | null>(null);
-  const [loadError, setLoadError] = useState(false);
-  const [tz, setTz] = useState<string | null>(null);
-  const [month, setMonth] = useState<{ y: number; m: number } | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [initial] = useState(() => {
+    const zone = detectTimeZone();
+    return { tz: zone, ...availability(zone), lead: readLead() };
+  });
+  const [avail, setAvail] = useState(initial.avail);
+  const [tz, setTz] = useState(initial.tz);
+  const [month, setMonth] = useState(initial.month);
+  const [selectedDate, setSelectedDate] = useState(initial.selectedDate);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [step, setStep] = useState<"pick" | "details" | "done">("pick");
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
+  const [name, setName] = useState(initial.lead.name ?? "");
+  const [email, setEmail] = useState(initial.lead.email ?? "");
+  const [company, setCompany] = useState(initial.lead.company ?? "");
   const [topics, setTopics] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -88,56 +131,19 @@ export default function BookingWidget({ className }: { className?: string }) {
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
 
-  const applyAvailability = useCallback((data: Availability, zone: string) => {
-    setAvail(data);
-    const first = data.slots[0];
-    const ref = zonedParts(first ?? Date.now(), zone);
-    setMonth({ y: ref.year, m: ref.month });
-    setSelectedDate(first ? dateKey(first, zone) : null);
-  }, []);
-
-  const load = useCallback(
-    async (zone?: string) => {
-      setLoadError(false);
-      try {
-        const res = await fetch("/api/availability", { cache: "no-store" });
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as Availability;
-        const z = zone ?? detectTimeZone();
-        setTz(z);
-        applyAvailability(data, z);
-      } catch {
-        setLoadError(true);
-      }
-    },
-    [applyAvailability],
-  );
+  const refresh = () => {
+    const next = availability(tz);
+    setAvail(next.avail);
+    setMonth(next.month);
+    setSelectedDate(next.selectedDate);
+  };
 
   useEffect(() => {
     startedAt.current = Date.now();
-    let cancelled = false;
-    (async () => {
-      await load();
-      if (cancelled) return;
-      // Prefill from an earlier enquiry or from the URL.
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const saved = JSON.parse(sessionStorage.getItem(LEAD_KEY) ?? "{}") as Record<string, string>;
-        setName(params.get("name") ?? saved.name ?? "");
-        setEmail(params.get("email") ?? saved.email ?? "");
-        setCompany(saved.company ?? "");
-      } catch {
-        // Ignore unavailable storage.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [load]);
+  }, []);
 
   const slotsByDate = useMemo(() => {
     const map = new Map<string, string[]>();
-    if (!avail || !tz) return map;
     for (const s of avail.slots) {
       const key = dateKey(s, tz);
       const list = map.get(key);
@@ -147,20 +153,18 @@ export default function BookingWidget({ className }: { className?: string }) {
     return map;
   }, [avail, tz]);
 
-  const zones = useMemo(() => (tz ? allTimeZones(tz) : []), [tz]);
+  const zones = useMemo(() => allTimeZones(tz), [tz]);
 
   const changeTz = (zone: string) => {
     setTz(zone);
-    if (avail) {
-      const keys = new Set(avail.slots.map((s) => dateKey(s, zone)));
-      const keep = selectedDate && keys.has(selectedDate);
-      if (!keep) {
-        const first = avail.slots[0];
-        setSelectedDate(first ? dateKey(first, zone) : null);
-        if (first) {
-          const p = zonedParts(first, zone);
-          setMonth({ y: p.year, m: p.month });
-        }
+    const keys = new Set(avail.slots.map((s) => dateKey(s, zone)));
+    const keep = selectedDate && keys.has(selectedDate);
+    if (!keep) {
+      const first = avail.slots[0];
+      setSelectedDate(first ? dateKey(first, zone) : null);
+      if (first) {
+        const p = zonedParts(first, zone);
+        setMonth({ y: p.year, m: p.month });
       }
     }
   };
@@ -188,7 +192,7 @@ export default function BookingWidget({ className }: { className?: string }) {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!selectedSlot || !tz) return;
+    if (!selectedSlot) return;
     const nextErrors: Record<string, string> = {};
     if (name.trim().length < 2) nextErrors.name = "Please enter your name.";
     if (!EMAIL_RE.test(email.trim())) nextErrors.email = "Please enter a valid email address.";
@@ -198,49 +202,48 @@ export default function BookingWidget({ className }: { className?: string }) {
       return;
     }
 
+    // The page may have been open a while: make sure the slot is still bookable.
+    const slot = findSlot(selectedSlot);
+    if (!slot) {
+      setNotice("Sorry, that time is no longer available. Please choose another slot.");
+      setSelectedSlot(null);
+      setStep("pick");
+      refresh();
+      return;
+    }
+
     setSubmitting(true);
     setNotice(null);
     try {
-      const res = await fetch("/api/booking", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          start: selectedSlot,
-          timeZone: tz,
-          name: name.trim(),
-          email: email.trim(),
-          company: company.trim(),
-          topics,
-          notes: notes.trim(),
-          website: honeypot.current?.value ?? "",
-          startedAt: startedAt.current || undefined,
-          page: window.location.pathname,
-          attribution: getAttribution(),
-        }),
+      const meeting = booking.meeting;
+      const location = MEETING_URL ?? meeting.location;
+      const spam = looksLikeSpam({
+        honeypot: honeypot.current?.value,
+        startedAt: startedAt.current || undefined,
+        text: notes,
       });
-      const data = (await res.json().catch(() => ({}))) as {
-        ok?: boolean;
-        error?: string;
-        code?: string;
-        fields?: Record<string, string>;
-        booking?: { start: string; end?: string; location?: string; meetingUrl?: string };
-        emailSent?: boolean;
-      };
+      const data = spam
+        ? ({ ok: true } as const)
+        : await submitForm({
+            subject: `${meeting.name}: ${name.trim()}${company.trim() ? ` (${company.trim()})` : ""}, ${formatInZone(slot.start, booking.timeZone, WHEN)}`,
+            name: name.trim(),
+            email: email.trim(),
+            fields: {
+              When: `${formatInZone(slot.start, booking.timeZone, WHEN)} (${meeting.durationMinutes} min)`,
+              "Their time": `${formatInZone(slot.start, tz, WHEN)} (${tz})`,
+              Company: company.trim(),
+              Topics: topics.join(", "),
+              Notes: notes.trim(),
+              Location: location,
+              Page: window.location.pathname,
+              ...attributionFields(),
+            },
+          });
 
-      if (res.ok && data.ok) {
-        const start = data.booking?.start ?? selectedSlot;
-        const end =
-          data.booking?.end ??
-          new Date(new Date(start).getTime() + (avail?.meeting.durationMinutes ?? 30) * 60000).toISOString();
-        setResult({
-          start,
-          end,
-          location: data.booking?.location ?? avail?.meeting.location ?? "Video call",
-          meetingUrl: data.booking?.meetingUrl,
-          emailSent: Boolean(data.emailSent),
-        });
+      if (data.ok) {
+        setResult({ start: slot.start, end: slot.end, location: meeting.location, meetingUrl: MEETING_URL });
         setStep("done");
-        track("book_appointment", { meeting: avail?.meeting.name ?? "call", topics: topics.join(",") });
+        track("book_appointment", { meeting: meeting.name, topics: topics.join(",") });
         try {
           sessionStorage.setItem(
             LEAD_KEY,
@@ -252,25 +255,16 @@ export default function BookingWidget({ className }: { className?: string }) {
         requestAnimationFrame(scrollIntoView);
         return;
       }
-
-      if (res.status === 409) {
-        setNotice(data.error ?? "That time is no longer available. Please pick another.");
-        setSelectedSlot(null);
-        setStep("pick");
-        await load(tz);
-        return;
-      }
-      if (data.fields) setErrors(data.fields);
-      setNotice(data.error ?? "Something went wrong. Please try again.");
+      setNotice(data.error);
     } catch {
-      setNotice("We couldn't reach the server. Check your connection and try again.");
+      setNotice(`We couldn't reach the server. Check your connection and try again, or email us at ${site.email}.`);
     } finally {
       setSubmitting(false);
     }
   };
 
   const downloadIcs = () => {
-    if (!result || !avail) return;
+    if (!result) return;
     const ics = buildIcs({
       uid: `${new Date(result.start).getTime()}@${new URL(site.url).host}`,
       start: new Date(result.start),
@@ -296,12 +290,12 @@ export default function BookingWidget({ className }: { className?: string }) {
           <Video className="size-[18px]" aria-hidden="true" />
         </span>
         <div>
-          <p className="leading-tight font-medium text-fog-100">{avail?.meeting.name ?? "Free strategy call"}</p>
+          <p className="leading-tight font-medium text-fog-100">{avail.meeting.name}</p>
           <p className="mt-0.5 flex items-center gap-3 text-xs text-fog-400">
             <span className="inline-flex items-center gap-1">
-              <Clock className="size-3" aria-hidden="true" /> {avail?.meeting.durationMinutes ?? 30} min
+              <Clock className="size-3" aria-hidden="true" /> {avail.meeting.durationMinutes} min
             </span>
-            <span>{avail?.meeting.location ?? "Video call"}</span>
+            <span>{avail.meeting.location}</span>
           </p>
         </div>
       </div>
@@ -326,42 +320,6 @@ export default function BookingWidget({ className }: { className?: string }) {
       </ol>
     </div>
   );
-
-  if (loadError) {
-    return (
-      <div ref={rootRef} className={cn("surface overflow-hidden rounded-[2rem] bg-ink-900", className)}>
-        {header}
-        <div className="p-8 text-center">
-          <p className="text-fog-200">We couldn&apos;t load available times.</p>
-          <div className="mt-5 flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={() => load()} className="btn btn-ghost btn-sm">
-              <span className="roll">
-                <span data-text="Try again">Try again</span>
-              </span>
-            </button>
-            <a href={`mailto:${site.email}?subject=Booking%20a%20call`} className="btn btn-primary btn-sm">
-              <span className="roll">
-                <span data-text="Email us instead">Email us instead</span>
-              </span>
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!avail || !tz || !month) {
-    return (
-      <div
-        ref={rootRef}
-        className={cn("surface overflow-hidden rounded-[2rem] bg-ink-900", className)}
-        aria-busy="true"
-      >
-        {header}
-        <BookingSkeleton />
-      </div>
-    );
-  }
 
   const today = zonedParts(now, tz);
   const daysInMonth = new Date(Date.UTC(month.y, month.m, 0)).getUTCDate();
@@ -679,9 +637,7 @@ export default function BookingWidget({ className }: { className?: string }) {
           </div>
 
           <p className="mt-6 text-fog-300">
-            {result.emailSent
-              ? `A confirmation with a calendar invite is on its way to ${email}.`
-              : "Add it to your calendar below. We'll be in touch before the call."}{" "}
+            Add it to your calendar below. We&apos;ll be in touch before the call.{" "}
             {result.meetingUrl ? (
               <>
                 Join link:{" "}

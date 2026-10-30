@@ -6,6 +6,8 @@ import { getAllPosts } from "@/lib/blog";
 
 const LAST_UPDATED = new Date("2026-09-26");
 
+export const dynamic = "force-static";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages: MetadataRoute.Sitemap = [
     { url: absoluteUrl("/"), priority: 1, changeFrequency: "weekly" },

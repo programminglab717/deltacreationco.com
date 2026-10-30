@@ -1,5 +1,7 @@
 import { ogContentType, ogSize, renderOgImage } from "@/lib/og";
 
+export const dynamic = "force-static";
+
 export const alt = "Delta Creation Co.: web development and automation studio";
 export const size = ogSize;
 export const contentType = ogContentType;

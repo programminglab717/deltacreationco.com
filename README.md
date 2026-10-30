@@ -4,29 +4,33 @@ Marketing website for **Delta Creation Co.**, a development & automation studio.
 conversions: fast static pages, rich SEO, interactive "live" demos, a built-in meeting scheduler and a contact form
 that emails every lead straight to your inbox.
 
-- **Stack:** Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 · GSAP + ScrollTrigger · Lenis
-  smooth scrolling · Zod · Nodemailer
-- **Rendering:** every page is statically pre-rendered; only the three API routes run on the server.
+It's a **fully static site**: `npm run build` writes plain HTML/CSS/JS to `dist/`. There's no Node.js server to run;
+upload `dist/` to any static host.
+
+- **Stack:** Next.js 16 (App Router, Turbopack, `output: "export"`) · React 19 · TypeScript · Tailwind CSS 4 · GSAP +
+  ScrollTrigger · Lenis smooth scrolling
+- **Rendering:** every page, feed and social image is pre-rendered at build time. Forms post straight from the browser
+  to a hosted form service (see below).
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in SMTP + FocusPilot settings
+cp .env.example .env.local   # add your form endpoint + meeting link
 npm run dev                  # http://localhost:3000
 ```
 
 | Script            | What it does                          |
 | ----------------- | ------------------------------------- |
 | `npm run dev`     | Local development server              |
-| `npm run build`   | Production build (type-checks too)    |
-| `npm run start`   | Serve the production build            |
+| `npm run build`   | Static build into `dist/` (type-checks too) |
+| `npm run preview` | Serve `dist/` locally to check the build |
 | `npm run lint`    | ESLint                                |
 | `npm run format`  | Prettier (with Tailwind class sorting) |
 
-Without SMTP/FocusPilot credentials, the forms still work locally: submissions are logged to the terminal instead of
-being sent. In production, missing configuration returns a friendly error with your email address, so no lead is ever
-silently lost.
+Without a form endpoint, the forms still work in `npm run dev`: submissions are logged to the browser console instead of
+being sent. In a production build, a missing endpoint shows a friendly error with your email address, so no lead is
+ever silently lost.
 
 ## Pages
 
@@ -39,7 +43,7 @@ silently lost.
 | `/solutions/[slug]`  | 6 playbook pages, each with a live, runnable workflow demo              |
 | `/about`             | Story, mission, beliefs, process                                        |
 | `/contact`           | Qualifying contact form → email                                          |
-| `/book`              | Meeting scheduler → FocusPilot task + calendar invites                  |
+| `/book`              | Meeting scheduler → email + calendar invites                            |
 | `/blog`, `/blog/[slug]` | Insights (Markdown in `content/blog`) with table of contents and RSS  |
 | `/privacy`, `/terms` | Legal pages                                                             |
 
@@ -61,31 +65,36 @@ Almost everything is plain data. No code changes needed for copy updates.
 In headings, wrap words in `*asterisks*` to render them in the italic accent font, e.g.
 `"Put your busywork on *autopilot*."`
 
-## Contact form → your inbox (Nodemailer)
+## Forms → your inbox
 
-`POST /api/contact` validates the submission (Zod), filters spam (honeypot, time-trap, link limits, per-IP rate
-limit, same-origin check) and emails a formatted enquiry to `CONTACT_TO_EMAIL` with **Reply-To set to the visitor**, so
-you can answer with one click. Each email includes lead attribution (UTM source, referrer, landing page) and any ROI
-calculator estimate. Optionally, visitors get an automatic confirmation (`CONTACT_AUTOREPLY=true`).
+A static site has no server to send email, so the contact form and the booking calendar post their submissions as
+JSON to a hosted form backend, which emails them to you. Any service that accepts JSON posts works:
 
-Gmail setup: enable 2-Step Verification, create an [App Password](https://myaccount.google.com/apppasswords), then use
-`SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USER=<gmail>`, `SMTP_PASS=<app password>`.
-Any SMTP provider works (Google Workspace, Microsoft 365, Zoho, Postmark, SES…).
+| Service | `NEXT_PUBLIC_FORM_ENDPOINT` | `NEXT_PUBLIC_FORM_ACCESS_KEY` |
+| ------- | --------------------------- | ----------------------------- |
+| [Formspree](https://formspree.io) | `https://formspree.io/f/<form id>` | leave empty |
+| [Web3Forms](https://web3forms.com) | `https://api.web3forms.com/submit` | your access key |
+| Getform, Basin, FormKeep… | the form's endpoint URL | leave empty |
 
-## Meeting bookings → FocusPilot
+Every email has a clear subject, the visitor's details, and **Reply-To set to the visitor**, so you can answer with
+one click. It also includes lead attribution (UTM source, referrer, landing page) and any ROI calculator estimate.
+Spam is filtered in the browser (honeypot field, time-trap, link limits); turn on your form service's spam
+protection too. Visitor auto-replies are configured in the form service.
 
-`GET /api/availability` generates open slots from the rules in `src/content/booking.ts` (studio time zone, working
-hours, minimum notice, booking window). Visitors see times in their own time zone and can switch zones.
+`NEXT_PUBLIC_*` values are baked into the build, so set them before running `npm run build` (in `.env.local`, or in
+your host's build settings).
 
-`POST /api/booking` re-validates the slot, then:
+All delivery code lives in **`src/lib/forms.ts`**.
 
-1. **Creates a task in FocusPilot** for the meeting (title, full details, due date = meeting start).
-2. Emails you a notification with an `.ics` calendar file (`BOOKING_NOTIFY_OWNER`).
-3. Emails the visitor a confirmation with a calendar invite and your meeting link (`BOOKING_MEETING_URL`).
+## Meeting bookings
 
-If FocusPilot is unreachable, the owner email acts as a safety net, so the booking is never lost.
+Open slots are generated in the visitor's browser from the rules in `src/content/booking.ts` (studio time zone,
+working hours, minimum notice, booking window, blackout dates). Visitors see times in their own time zone and can
+switch zones. A booking is emailed to you through the form service with both time zones. The visitor gets an `.ics`
+download plus Google and Outlook calendar links, along with your meeting link (`NEXT_PUBLIC_BOOKING_MEETING_URL`).
 
-All FocusPilot request details (endpoint, auth header, payload fields) live in **`src/lib/focuspilot.ts`**.
+There's no server-side calendar, so the widget can't see bookings already made. If two people pick the same slot,
+reschedule one by email. To block days off, add them to `blackoutDates`.
 
 ## SEO & performance
 
@@ -93,7 +102,7 @@ All FocusPilot request details (endpoint, auth header, payload fields) live in *
 - Generated, branded social images for every page (`opengraph-image.tsx`)
 - JSON-LD structured data: Organization, WebSite, Service, FAQPage, BreadcrumbList, BlogPosting, ItemList
 - `sitemap.xml`, `robots.txt`, `manifest.webmanifest`, RSS feed at `/blog/rss.xml`, and `/llms.txt` for AI assistants
-- Static pre-rendering, self-hosted fonts, no layout-shifting images, lazy-loaded booking calendar
+- Fully static output, self-hosted fonts, no layout-shifting images, lazy-loaded booking calendar
 - Accessibility: semantic landmarks, skip link, keyboard-friendly menus, visible focus states, form error
   announcements and full `prefers-reduced-motion` support
 
@@ -108,14 +117,26 @@ are sent automatically: `generate_lead` (contact form), `book_appointment` (book
 
 ## Deployment
 
-Deploy to [Vercel](https://vercel.com) (recommended): import the repository, add the environment variables from
-`.env.example`, and point `deltacreationco.com` at the project. Any Node.js host that runs `next start` also works.
+```bash
+npm run build   # → dist/
+```
+
+Upload the contents of `dist/` to any static host: Netlify, Cloudflare Pages, GitHub Pages, S3 + CloudFront,
+Vercel, or plain Apache/nginx/cPanel hosting. For hosts that build from Git, set the build command to
+`npm run build`, the output directory to `dist` and add the `NEXT_PUBLIC_*` variables from `.env.example`.
+
+URLs end in a slash (`/about/` → `dist/about/index.html`), so every host serves them without rewrite rules. Missing
+pages use `dist/404.html`.
+
+Security headers ship with the build for Netlify/Cloudflare Pages (`public/_headers`) and Apache
+(`public/.htaccess`). On nginx, add the same headers to your server block, and serve the extension-less
+`opengraph-image` and `apple-icon` files as `image/png`.
 
 ## Launch checklist
 
 - [ ] Confirm `email`, `timeZone`, `hours` and `socials` in `src/content/site.ts`
 - [ ] Confirm booking hours in `src/content/booking.ts`
-- [ ] Add SMTP, FocusPilot and meeting-link environment variables, then send a test enquiry and booking
+- [ ] Set the form endpoint and meeting link, rebuild, then send a test enquiry and booking
 - [ ] Review copy (commitments such as response times) and the legal pages
 - [ ] Add real case studies/testimonials as they become available
 - [ ] Connect analytics and Google Search Console
@@ -124,8 +145,9 @@ Deploy to [Vercel](https://vercel.com) (recommended): import the repository, add
 
 ```
 content/blog/           Markdown articles
-src/app/                Routes, metadata files, API routes
+src/app/                Routes and metadata files
 src/components/         layout/, sections/, motion/, booking/, forms/, blog/, ui/, seo/
 src/content/            Site copy and configuration
-src/lib/                Email, FocusPilot, booking engine, SEO helpers, validation, utilities
+public/                 Host config (_headers, .htaccess) copied into dist/
+src/lib/                Form delivery, booking engine, SEO helpers, utilities
 ```
