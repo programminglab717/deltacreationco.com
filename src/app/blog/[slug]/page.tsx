@@ -10,7 +10,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
 import { Breadcrumbs, HeroTitle } from "@/components/ui/page-hero";
 import { getService } from "@/content/services";
-import { absoluteUrl } from "@/content/site";
+import { pageUrl } from "@/content/site";
 import { getAllPosts, getPost } from "@/lib/blog";
 import { articleSchema, pageMetadata } from "@/lib/seo";
 import { formatDate } from "@/lib/utils";
@@ -47,7 +47,7 @@ export default async function PostPage({ params }: PageProps<"/blog/[slug]">) {
     .filter((p) => p.slug !== post.slug)
     .slice(0, 2);
   const services = post.relatedServices.map(getService).filter((s) => s !== undefined);
-  const shareUrl = encodeURIComponent(absoluteUrl(`/blog/${post.slug}`));
+  const shareUrl = encodeURIComponent(pageUrl(`/blog/${post.slug}`));
   const shareText = encodeURIComponent(post.title);
 
   return (

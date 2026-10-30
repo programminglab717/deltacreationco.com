@@ -9,7 +9,7 @@ import { FaqList } from "@/components/sections/faq";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Breadcrumbs, HeroTitle } from "@/components/ui/page-hero";
 import { homeFaqs } from "@/content/company";
-import { absoluteUrl, site } from "@/content/site";
+import { pageUrl, site } from "@/content/site";
 import { faqSchema, pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -118,7 +118,7 @@ export default function ContactPage() {
             "@context": "https://schema.org",
             "@type": "ContactPage",
             name: `Contact ${site.name}`,
-            url: absoluteUrl("/contact"),
+            url: pageUrl("/contact"),
             mainEntity: { "@id": `${site.url}/#organization` },
           },
           faqSchema(contactFaqs),

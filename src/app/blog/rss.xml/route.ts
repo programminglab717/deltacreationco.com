@@ -1,4 +1,4 @@
-import { absoluteUrl, site } from "@/content/site";
+import { absoluteUrl, pageUrl, site } from "@/content/site";
 import { getAllPosts } from "@/lib/blog";
 
 export const dynamic = "force-static";
@@ -14,8 +14,8 @@ export function GET() {
       (p) => `
     <item>
       <title>${xml(p.title)}</title>
-      <link>${absoluteUrl(`/blog/${p.slug}`)}</link>
-      <guid isPermaLink="true">${absoluteUrl(`/blog/${p.slug}`)}</guid>
+      <link>${pageUrl(`/blog/${p.slug}`)}</link>
+      <guid isPermaLink="true">${pageUrl(`/blog/${p.slug}`)}</guid>
       <description>${xml(p.description)}</description>
       <category>${xml(p.category)}</category>
       <pubDate>${new Date(`${p.date}T12:00:00Z`).toUTCString()}</pubDate>
@@ -27,7 +27,7 @@ export function GET() {
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>${xml(`${site.name} Insights`)}</title>
-    <link>${absoluteUrl("/blog")}</link>
+    <link>${pageUrl("/blog")}</link>
     <description>${xml("Practical guides on web development, business automation and AI.")}</description>
     <language>en</language>
     <atom:link href="${absoluteUrl("/blog/rss.xml")}" rel="self" type="application/rss+xml" />${items}

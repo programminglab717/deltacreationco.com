@@ -11,7 +11,7 @@ import { PageHero } from "@/components/ui/page-hero";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { engagementModels, homeFaqs } from "@/content/company";
 import { serviceCategories, servicesByCategory, type ServiceCategory } from "@/content/services";
-import { absoluteUrl } from "@/content/site";
+import { pageUrl } from "@/content/site";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -131,7 +131,7 @@ export default function ServicesPage() {
             "@type": "ListItem",
             position: i + 1,
             name: s.name,
-            url: absoluteUrl(`/services/${s.slug}`),
+            url: pageUrl(`/services/${s.slug}`),
           })),
         }}
       />

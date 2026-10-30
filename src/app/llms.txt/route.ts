@@ -1,5 +1,5 @@
 import { services } from "@/content/services";
-import { absoluteUrl, site } from "@/content/site";
+import { pageUrl, site } from "@/content/site";
 import { solutions } from "@/content/solutions";
 import { getAllPosts } from "@/lib/blog";
 
@@ -12,21 +12,21 @@ export function GET() {
     "",
     `> ${site.description}`,
     "",
-    `Contact: ${site.email} · Book a free 30-minute strategy call: ${absoluteUrl("/book")}`,
+    `Contact: ${site.email} · Book a free 30-minute strategy call: ${pageUrl("/book")}`,
     "",
     "## Services",
-    ...services.map((s) => `- [${s.name}](${absoluteUrl(`/services/${s.slug}`)}): ${s.short}`),
+    ...services.map((s) => `- [${s.name}](${pageUrl(`/services/${s.slug}`)}): ${s.short}`),
     "",
     "## Automation solutions",
-    ...solutions.map((s) => `- [${s.name}](${absoluteUrl(`/solutions/${s.slug}`)}): ${s.short}`),
+    ...solutions.map((s) => `- [${s.name}](${pageUrl(`/solutions/${s.slug}`)}): ${s.short}`),
     "",
     "## Insights",
-    ...getAllPosts().map((p) => `- [${p.title}](${absoluteUrl(`/blog/${p.slug}`)}): ${p.description}`),
+    ...getAllPosts().map((p) => `- [${p.title}](${pageUrl(`/blog/${p.slug}`)}): ${p.description}`),
     "",
     "## Company",
-    `- [About](${absoluteUrl("/about")})`,
-    `- [Contact](${absoluteUrl("/contact")})`,
-    `- [Privacy policy](${absoluteUrl("/privacy")})`,
+    `- [About](${pageUrl("/about")})`,
+    `- [Contact](${pageUrl("/contact")})`,
+    `- [Privacy policy](${pageUrl("/privacy")})`,
     "",
   ];
   return new Response(lines.join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });

@@ -116,4 +116,4 @@ Sometimes the right answer is purpose-built software: a small service in Node.js
 
 We're tool-agnostic on purpose. For most clients, we recommend the simplest platform that will comfortably handle the next few years of growth, and we build every workflow with error handling, monitoring and documentation, whichever tool it runs on.
 
-Not sure which fits your business? [Book a free strategy call](/book) and we'll review your processes and recommend a stack, with honest trade-offs.
+Not sure which fits your business? [Book a free strategy call](/book/) and we'll review your processes and recommend a stack, with honest trade-offs.

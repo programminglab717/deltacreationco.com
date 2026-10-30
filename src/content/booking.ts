@@ -12,5 +12,5 @@ export const booking = {
       "A focused 30-minute conversation about your goals, your current setup and the fastest way to get results.",
   },
   /** FocusPilot booking page shown inline. `color` sets its accent (hex, no #). */
-  embedUrl: "https://focuspilot.online/book/ws-79fltn/intro-call?color=f48b2a",
+  embedUrl: "https://focuspilot.online/book/ws-79fltn/intro-call?color=ff5a1f",
 } as const;

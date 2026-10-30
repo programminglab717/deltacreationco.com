@@ -122,14 +122,19 @@ inside the FocusPilot embed, so track them from FocusPilot. If you add Google An
 npm run build   # → dist/
 ```
 
-1. Upload the **contents** of `dist/` into `public_html/` (hPanel File Manager, FTP, or Git deployment), including
-   the hidden `.htaccess` files.
-2. Create `contact-config.php` next to `public_html/` from `public/api/config.example.php`, with your mailbox
+1. In hPanel, make sure the domain's **SSL certificate is active**. `.htaccess` redirects every request to HTTPS.
+2. Upload the **contents** of `dist/` into `public_html/` (File Manager: upload a zip and extract it, or use FTP).
+   Include the hidden `.htaccess` files. When updating, replace the old files so stale ones don't linger.
+3. Create `contact-config.php` next to `public_html/` from `public/api/config.example.php`, with your mailbox
    password.
-3. Send a test enquiry from `/contact/` and make a test booking on `/book/`.
+4. Send a test enquiry from `/contact/` and make a test booking on `/book/`. Then submit
+   `https://deltacreationco.com/sitemap.xml` in Google Search Console.
 
-URLs end in a slash (`/about/` → `about/index.html`), so no rewrite rules are needed. Missing pages use `404.html`.
-`public/.htaccess` adds the security headers, caching and the 404 page.
+`public/.htaccess` (Apache/LiteSpeed) redirects to `https://` without `www`, and sets security headers, compression,
+long-term caching for hashed assets, and the 404 page. It also blocks the PHP config and library files.
+
+URLs end in a slash (`/about/` → `about/index.html`), and canonical URLs, the sitemap and the RSS feed use the same
+form, so search engines never hit a redirect. Use `pageUrl()` from `src/content/site.ts` for absolute page links.
 
 The pages also work on any static host (Netlify, Cloudflare Pages, nginx…) using `public/_headers` or your own server
 config. Only the contact form needs PHP.
