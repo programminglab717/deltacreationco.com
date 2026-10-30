@@ -58,51 +58,10 @@ export function zonedParts(date: DateInput, timeZone: string): ZonedParts {
   };
 }
 
-/** Offset of `timeZone` from UTC at the given instant, in milliseconds. */
-export function tzOffsetMs(date: Date | number, timeZone: string) {
-  const ms = typeof date === "number" ? date : date.getTime();
-  const p = zonedParts(ms, timeZone);
-  const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
-  return asUtc - Math.floor(ms / 1000) * 1000;
-}
-
-/** Convert a wall-clock time in `timeZone` to a UTC instant. */
-export function zonedTimeToUtc(
-  year: number,
-  month: number,
-  day: number,
-  hour: number,
-  minute: number,
-  timeZone: string,
-) {
-  const guess = Date.UTC(year, month - 1, day, hour, minute);
-  const offset = tzOffsetMs(guess, timeZone);
-  let utc = guess - offset;
-  // Re-check around DST transitions.
-  const offset2 = tzOffsetMs(utc, timeZone);
-  if (offset2 !== offset) utc = guess - offset2;
-  return new Date(utc);
-}
-
-/** YYYY-MM-DD for an instant as seen in `timeZone`. */
-export function dateKey(date: DateInput, timeZone: string) {
-  const p = zonedParts(date, timeZone);
-  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
-}
-
 export function formatInZone(date: DateInput, timeZone: string, opts: Intl.DateTimeFormatOptions) {
   return new Intl.DateTimeFormat("en-US", { timeZone, ...opts }).format(toDate(date));
 }
 
 export function cityFromTimeZone(timeZone: string) {
   return (timeZone.split("/").pop() ?? timeZone).replace(/_/g, " ");
-}
-
-export function isValidTimeZone(timeZone: string) {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone });
-    return true;
-  } catch {
-    return false;
-  }
 }

@@ -90,4 +90,4 @@ You don't need to fix everything at once. Start with the pages that get the most
 - Is there proof near the call-to-action?
 - Are the top objections answered?
 
-Small, focused improvements compound quickly. If you'd like an expert review of your current site, [book a free strategy call](/book). We'll walk through your key pages and share a prioritized list of improvements, whether or not you work with us.
+Small, focused improvements compound quickly. If you'd like an expert review of your current site, [book a free strategy call](/book/). We'll walk through your key pages and share a prioritized list of improvements, whether or not you work with us.

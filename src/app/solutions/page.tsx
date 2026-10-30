@@ -8,7 +8,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { PageHero } from "@/components/ui/page-hero";
-import { absoluteUrl } from "@/content/site";
+import { pageUrl } from "@/content/site";
 import { solutions } from "@/content/solutions";
 import { pageMetadata } from "@/lib/seo";
 
@@ -93,7 +93,7 @@ export default function SolutionsPage() {
             "@type": "ListItem",
             position: i + 1,
             name: s.name,
-            url: absoluteUrl(`/solutions/${s.slug}`),
+            url: pageUrl(`/solutions/${s.slug}`),
           })),
         }}
       />

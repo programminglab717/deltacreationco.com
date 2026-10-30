@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const LEAD_KEY = "dcc:lead";
 const MAX_MESSAGE = 5000;
+/** PHP mailer shipped in `public/api/` (runs on the web host, not under `next dev`). */
+const CONTACT_ENDPOINT = process.env.NEXT_PUBLIC_CONTACT_ENDPOINT || "/api/contact.php";
 
 type Prefill = {
   interests: string[];
@@ -102,7 +104,7 @@ function ContactFormInner({ prefill }: { prefill: Prefill }) {
     setStatus("sending");
     setServerError(null);
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch(CONTACT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

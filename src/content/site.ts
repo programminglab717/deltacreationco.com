@@ -13,8 +13,8 @@ export const site = {
   /** Public contact address shown on the site. */
   email: "hello@deltacreationco.com",
   /**
-   * Studio time zone (IANA). Drives the live studio clock, the "online now"
-   * status and the booking calendar's working hours.
+   * Studio time zone (IANA). Drives the live studio clock and the "online
+   * now" status.
    */
   timeZone: "America/New_York",
   /** Working hours in the studio time zone (24h clock, 0 = Sunday). */
@@ -46,4 +46,9 @@ export type Site = typeof site;
 
 export function absoluteUrl(path = "/") {
   return `${site.url}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+/** Absolute URL of a page. Pages are served as `/path/index.html`, so their canonical URLs end in a slash. */
+export function pageUrl(path = "/") {
+  return absoluteUrl(path.endsWith("/") ? path : `${path}/`);
 }

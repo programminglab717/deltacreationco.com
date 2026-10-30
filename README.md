@@ -1,32 +1,38 @@
 # Delta Creation Co. — website
 
 Marketing website for **Delta Creation Co.**, a development & automation studio. Built for organic growth and
-conversions: fast static pages, rich SEO, interactive "live" demos, a built-in meeting scheduler and a contact form
-that emails every lead straight to your inbox.
+conversions: fast static pages, rich SEO, interactive "live" demos, an inline FocusPilot booking calendar and a
+contact form that emails every lead straight to your inbox.
 
-- **Stack:** Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 · GSAP + ScrollTrigger · Lenis
-  smooth scrolling · Zod · Nodemailer
-- **Rendering:** every page is statically pre-rendered; only the three API routes run on the server.
+It's a **static site**: `npm run build` writes plain HTML/CSS/JS to `dist/`. There's no Node.js server to run. The
+only server-side piece is one small PHP file for the contact form, so it runs on ordinary shared hosting (Hostinger).
+
+- **Stack:** Next.js 16 (App Router, Turbopack, `output: "export"`) · React 19 · TypeScript · Tailwind CSS 4 · GSAP +
+  ScrollTrigger · Lenis smooth scrolling
+- **Rendering:** every page, feed and social image is pre-rendered at build time.
+- **Contact form:** `public/api/contact.php` + [PHPMailer](https://github.com/PHPMailer/PHPMailer) 6.12 (bundled)
+- **Bookings:** FocusPilot booking embed
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in SMTP + FocusPilot settings
+cp .env.example .env.local   # optional: site URL, analytics
 npm run dev                  # http://localhost:3000
 ```
 
 | Script            | What it does                          |
 | ----------------- | ------------------------------------- |
 | `npm run dev`     | Local development server              |
-| `npm run build`   | Production build (type-checks too)    |
-| `npm run start`   | Serve the production build            |
+| `npm run build`   | Static build into `dist/` (type-checks too) |
+| `npm run preview` | Serve `dist/` locally to check the build |
+| `npm run preview:php` | Serve `dist/` with PHP so the contact form works locally (needs PHP 8.1+) |
 | `npm run lint`    | ESLint                                |
 | `npm run format`  | Prettier (with Tailwind class sorting) |
 
-Without SMTP/FocusPilot credentials, the forms still work locally: submissions are logged to the terminal instead of
-being sent. In production, missing configuration returns a friendly error with your email address, so no lead is ever
-silently lost.
+The contact form needs PHP, so it doesn't send under `npm run dev`. Test it with `npm run build && npm run
+preview:php` and a `dist/api/config.php` (see below). If the mailer isn't configured or sending fails, visitors see a
+friendly error with your email address, so no lead is ever silently lost.
 
 ## Pages
 
@@ -39,7 +45,7 @@ silently lost.
 | `/solutions/[slug]`  | 6 playbook pages, each with a live, runnable workflow demo              |
 | `/about`             | Story, mission, beliefs, process                                        |
 | `/contact`           | Qualifying contact form → email                                          |
-| `/book`              | Meeting scheduler → FocusPilot task + calendar invites                  |
+| `/book`              | FocusPilot booking calendar                                              |
 | `/blog`, `/blog/[slug]` | Insights (Markdown in `content/blog`) with table of contents and RSS  |
 | `/privacy`, `/terms` | Legal pages                                                             |
 
@@ -53,7 +59,7 @@ Almost everything is plain data. No code changes needed for copy updates.
 | Services (copy, deliverables, FAQs, SEO) | `src/content/services.ts`       |
 | Automation playbooks + demo workflows    | `src/content/solutions.ts`      |
 | Process, principles, home FAQ, commitments | `src/content/company.ts`      |
-| Booking rules (hours, duration, notice, blackout dates) | `src/content/booking.ts` |
+| Booking embed URL + meeting copy (availability lives in FocusPilot) | `src/content/booking.ts` |
 | Contact form options (budgets, timelines) | `src/content/forms.ts`         |
 | Navigation                               | `src/content/navigation.ts`     |
 | Blog posts                               | `content/blog/*.md` (front-matter: title, description, date, category, tags, relatedServices) |
@@ -61,31 +67,35 @@ Almost everything is plain data. No code changes needed for copy updates.
 In headings, wrap words in `*asterisks*` to render them in the italic accent font, e.g.
 `"Put your busywork on *autopilot*."`
 
-## Contact form → your inbox (Nodemailer)
+## Contact form → your inbox (PHP + PHPMailer)
 
-`POST /api/contact` validates the submission (Zod), filters spam (honeypot, time-trap, link limits, per-IP rate
-limit, same-origin check) and emails a formatted enquiry to `CONTACT_TO_EMAIL` with **Reply-To set to the visitor**, so
-you can answer with one click. Each email includes lead attribution (UTM source, referrer, landing page) and any ROI
-calculator estimate. Optionally, visitors get an automatic confirmation (`CONTACT_AUTOREPLY=true`).
+`POST /api/contact.php` validates the submission, filters spam (honeypot, time-trap, link limits, per-IP rate limit,
+same-origin check) and emails a formatted enquiry to your inbox with **Reply-To set to the visitor**, so you can answer
+with one click. Each email includes lead attribution (UTM source, referrer, landing page) and any ROI calculator
+estimate. Visitors get an automatic confirmation too (`autoreply`).
 
-Gmail setup: enable 2-Step Verification, create an [App Password](https://myaccount.google.com/apppasswords), then use
-`SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USER=<gmail>`, `SMTP_PASS=<app password>`.
-Any SMTP provider works (Google Workspace, Microsoft 365, Zoho, Postmark, SES…).
+The PHP lives in `public/api/` and is copied into `dist/api/` on build. PHPMailer is bundled in `public/api/_lib/`, so
+there's no Composer step. Requires PHP 8.1+ with `mbstring` and `openssl` (standard on Hostinger).
 
-## Meeting bookings → FocusPilot
+**Settings (SMTP password etc.) are never committed.** Copy `public/api/config.example.php` to one of:
 
-`GET /api/availability` generates open slots from the rules in `src/content/booking.ts` (studio time zone, working
-hours, minimum notice, booking window). Visitors see times in their own time zone and can switch zones.
+1. `contact-config.php` in the folder **above** your web root (recommended). On Hostinger that's
+   `domains/deltacreationco.com/contact-config.php`, next to `public_html/`. Nothing there is reachable from the web.
+2. `api/config.php` inside the web root. `.htaccess` blocks access to it, and it prints nothing if requested anyway.
 
-`POST /api/booking` re-validates the slot, then:
+Hostinger mailbox: `smtp.hostinger.com`, port `465`, `secure` = `ssl`, the full email address as the username and the
+mailbox password. Errors are written to the PHP error log (hPanel → Advanced → PHP error logs).
 
-1. **Creates a task in FocusPilot** for the meeting (title, full details, due date = meeting start).
-2. Emails you a notification with an `.ics` calendar file (`BOOKING_NOTIFY_OWNER`).
-3. Emails the visitor a confirmation with a calendar invite and your meeting link (`BOOKING_MEETING_URL`).
+To point the form somewhere else, set `NEXT_PUBLIC_CONTACT_ENDPOINT` before building (defaults to `/api/contact.php`).
 
-If FocusPilot is unreachable, the owner email acts as a safety net, so the booking is never lost.
+## Bookings → FocusPilot
 
-All FocusPilot request details (endpoint, auth header, payload fields) live in **`src/lib/focuspilot.ts`**.
+The booking calendar on `/book` and the home page is FocusPilot's inline embed (`src/components/booking/`). FocusPilot
+handles availability, creates the meeting and sends the confirmation emails, so the site holds no FocusPilot API key.
+Change the booking page or its accent colour via `embedUrl` in `src/content/booking.ts`.
+
+The calendar loads only when it's about to scroll into view. If `embed.js` can't load (an ad blocker, or offline),
+visitors get a link to open the booking page directly, or to email you instead.
 
 ## SEO & performance
 
@@ -93,7 +103,7 @@ All FocusPilot request details (endpoint, auth header, payload fields) live in *
 - Generated, branded social images for every page (`opengraph-image.tsx`)
 - JSON-LD structured data: Organization, WebSite, Service, FAQPage, BreadcrumbList, BlogPosting, ItemList
 - `sitemap.xml`, `robots.txt`, `manifest.webmanifest`, RSS feed at `/blog/rss.xml`, and `/llms.txt` for AI assistants
-- Static pre-rendering, self-hosted fonts, no layout-shifting images, lazy-loaded booking calendar
+- Fully static output, self-hosted fonts, no layout-shifting images, lazy-loaded booking calendar
 - Accessibility: semantic landmarks, skip link, keyboard-friendly menus, visible focus states, form error
   announcements and full `prefers-reduced-motion` support
 
@@ -103,19 +113,37 @@ After launch: verify the domain in Google Search Console and Bing Webmaster Tool
 ## Analytics (optional)
 
 Set one of `NEXT_PUBLIC_GTM_ID`, `NEXT_PUBLIC_GA_MEASUREMENT_ID` or `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`. Conversion events
-are sent automatically: `generate_lead` (contact form), `book_appointment` (booking), plus `booking_slot_selected`,
-`roi_cta_click` and `playground_run`. If you add Google Analytics for EU visitors, add a consent banner.
+are sent automatically: `generate_lead` (contact form), plus `roi_cta_click` and `playground_run`. Bookings happen
+inside the FocusPilot embed, so track them from FocusPilot. If you add Google Analytics for EU visitors, add a consent banner.
 
-## Deployment
+## Deployment (Hostinger)
 
-Deploy to [Vercel](https://vercel.com) (recommended): import the repository, add the environment variables from
-`.env.example`, and point `deltacreationco.com` at the project. Any Node.js host that runs `next start` also works.
+```bash
+npm run build   # → dist/
+```
+
+1. In hPanel, make sure the domain's **SSL certificate is active**. `.htaccess` redirects every request to HTTPS.
+2. Upload the **contents** of `dist/` into `public_html/` (File Manager: upload a zip and extract it, or use FTP).
+   Include the hidden `.htaccess` files. When updating, replace the old files so stale ones don't linger.
+3. Create `contact-config.php` next to `public_html/` from `public/api/config.example.php`, with your mailbox
+   password.
+4. Send a test enquiry from `/contact/` and make a test booking on `/book/`. Then submit
+   `https://deltacreationco.com/sitemap.xml` in Google Search Console.
+
+`public/.htaccess` (Apache/LiteSpeed) redirects to `https://` without `www`, and sets security headers, compression,
+long-term caching for hashed assets, and the 404 page. It also blocks the PHP config and library files.
+
+URLs end in a slash (`/about/` → `about/index.html`), and canonical URLs, the sitemap and the RSS feed use the same
+form, so search engines never hit a redirect. Use `pageUrl()` from `src/content/site.ts` for absolute page links.
+
+The pages also work on any static host (Netlify, Cloudflare Pages, nginx…) using `public/_headers` or your own server
+config. Only the contact form needs PHP.
 
 ## Launch checklist
 
 - [ ] Confirm `email`, `timeZone`, `hours` and `socials` in `src/content/site.ts`
-- [ ] Confirm booking hours in `src/content/booking.ts`
-- [ ] Add SMTP, FocusPilot and meeting-link environment variables, then send a test enquiry and booking
+- [ ] Confirm availability and confirmation emails in FocusPilot
+- [ ] Add `contact-config.php` on the server, then send a test enquiry and booking
 - [ ] Review copy (commitments such as response times) and the legal pages
 - [ ] Add real case studies/testimonials as they become available
 - [ ] Connect analytics and Google Search Console
@@ -124,8 +152,9 @@ Deploy to [Vercel](https://vercel.com) (recommended): import the repository, add
 
 ```
 content/blog/           Markdown articles
-src/app/                Routes, metadata files, API routes
+src/app/                Routes and metadata files
 src/components/         layout/, sections/, motion/, booking/, forms/, blog/, ui/, seo/
 src/content/            Site copy and configuration
-src/lib/                Email, FocusPilot, booking engine, SEO helpers, validation, utilities
+public/                 Copied into dist/: .htaccess, _headers, api/contact.php (+ bundled PHPMailer)
+src/lib/                SEO helpers, time and attribution utilities
 ```

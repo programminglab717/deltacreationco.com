@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { absoluteUrl, site } from "@/content/site";
+import { absoluteUrl, pageUrl, site } from "@/content/site";
 
 type PageMetaInput = {
   title: string;
@@ -93,7 +93,7 @@ export function organizationSchema() {
         contactType: "sales",
         email: site.email,
         availableLanguage: ["English"],
-        url: absoluteUrl("/contact"),
+        url: pageUrl("/contact"),
       },
     ],
     ...(sameAs.length > 0 && { sameAs }),
@@ -121,7 +121,7 @@ export function breadcrumbSchema(items: { name: string; path: string }[]) {
       "@type": "ListItem",
       position: i + 1,
       name: item.name,
-      item: absoluteUrl(item.path),
+      item: pageUrl(item.path),
     })),
   };
 }
@@ -157,7 +157,7 @@ export function serviceSchema({
     name,
     description,
     serviceType,
-    url: absoluteUrl(path),
+    url: pageUrl(path),
     provider: { "@id": ORG_ID, "@type": "Organization", name: site.name, url: site.url },
     areaServed: "Worldwide",
     ...(offers?.length && {
@@ -200,8 +200,8 @@ export function articleSchema({
     dateModified: modified ?? published,
     author: { "@type": "Organization", name: site.name, url: site.url },
     publisher: { "@id": ORG_ID, "@type": "Organization", name: site.name, logo: absoluteUrl("/apple-icon") },
-    mainEntityOfPage: { "@type": "WebPage", "@id": absoluteUrl(path) },
-    url: absoluteUrl(path),
+    mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl(path) },
+    url: pageUrl(path),
     inLanguage: "en",
     ...(keywords?.length && { keywords: keywords.join(", ") }),
   };

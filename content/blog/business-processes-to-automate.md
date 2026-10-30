@@ -27,7 +27,7 @@ If a task ticks three or four of these boxes, it's probably worth automating.
 
 When a lead fills in a form, how long until someone responds? For many businesses, the honest answer is "hours" or "tomorrow." Buyers often go with whoever replies first.
 
-An automated workflow can capture the lead, enrich it with company data, score it, create a CRM record, alert the right salesperson and send a personalized first reply within seconds. It's usually the single highest-return automation a service business can build. See our [instant lead follow-up playbook](/solutions/lead-follow-up-automation) for what the workflow looks like step by step.
+An automated workflow can capture the lead, enrich it with company data, score it, create a CRM record, alert the right salesperson and send a personalized first reply within seconds. It's usually the single highest-return automation a service business can build. See our [instant lead follow-up playbook](/solutions/lead-follow-up-automation/) for what the workflow looks like step by step.
 
 ## 2. Client onboarding
 
@@ -99,4 +99,4 @@ Multiply the three scores and start with the highest. In practice, lead follow-u
 
 Pick one process from the list above that your team complains about most. Map every step, identify the tools involved and estimate the hours it consumes. That single workflow will usually pay for itself quickly, and it builds the confidence to automate the next one.
 
-If you'd like a second pair of eyes, [book a free strategy call](/book). We'll map your processes with you and show you exactly where automation will save the most time.
+If you'd like a second pair of eyes, [book a free strategy call](/book/). We'll map your processes with you and show you exactly where automation will save the most time.
